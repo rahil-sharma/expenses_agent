@@ -1,0 +1,12 @@
+{
+  "$schema": "https://langgra.ph/schema.json",
+  "dependencies": ["."],
+  "graphs": {
+    "supervisor": "./src/expenses_agent/orchestrator/graph.py:graph",
+    "read_agent": "./src/expenses_agent/agents/read/graph.py:graph",
+    "write_agent": "./src/expenses_agent/agents/write/graph.py:graph"
+  },
+  "env": ".env",
+  "python_version": "3.12",
+  "pip_installer": "pip"
+}

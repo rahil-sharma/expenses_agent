@@ -1,0 +1,63 @@
+[tool.poetry]
+name = "expenses-agent"
+version = "0.1.0"
+description = "A LangGraph and A2A multi-agent expense tracker for Twilio and Google Sheets"
+authors = ["Rahil Sharma"]
+readme = "README.md"
+packages = [{ include = "expenses_agent", from = "src" }]
+
+[tool.poetry.dependencies]
+python = ">=3.12,<3.13"
+langgraph = ">=0.6,<2.0"
+langchain-core = ">=0.3,<2.0"
+langchain-anthropic = ">=0.3,<2.0"
+langsmith = ">=0.4,<1.0"
+a2a-sdk = { version = ">=1.1,<2.0", extras = ["http-server"] }
+fastapi = ">=0.115,<1.0"
+uvicorn = { version = ">=0.35,<1.0", extras = ["standard"] }
+twilio = ">=9.7,<10.0"
+google-api-python-client = ">=2.170,<3.0"
+google-auth = ">=2.40,<3.0"
+httpx = ">=0.28,<1.0"
+pydantic = ">=2.11,<3.0"
+pydantic-settings = ">=2.10,<3.0"
+python-multipart = ">=0.0.20,<1.0"
+structlog = ">=25.4,<26.0"
+tenacity = ">=9.1,<10.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = ">=8.4,<10.0"
+pytest-asyncio = ">=1.1,<2.0"
+pytest-cov = ">=6.2,<8.0"
+pytest-mock = ">=3.14,<4.0"
+respx = ">=0.22,<1.0"
+ruff = ">=0.12,<1.0"
+mypy = ">=1.17,<2.0"
+types-protobuf = ">=6.30,<7.0"
+langgraph-cli = { version = ">=0.4,<1.0", extras = ["inmem"] }
+
+[tool.poetry.scripts]
+expenses-orchestrator = "expenses_agent.orchestrator.app:run"
+expenses-read-agent = "expenses_agent.agents.read.app:run"
+expenses-write-agent = "expenses_agent.agents.write.app:run"
+
+[build-system]
+requires = ["poetry-core>=2.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
