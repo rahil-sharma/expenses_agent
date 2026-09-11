@@ -48,6 +48,7 @@ def test_compound_sms_routes_write_before_read_and_deduplicates() -> None:
     second = client.post("/webhooks/twilio/sms", data=payload)
 
     assert first.status_code == 200
+    assert first.headers["content-type"].startswith("text/xml")
     assert first.text == second.text
     assert "Expense added." in first.text
     assert "September total" in first.text

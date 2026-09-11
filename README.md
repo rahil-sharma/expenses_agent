@@ -59,16 +59,35 @@ Configure these values for real integrations:
 
 - `AUTHORIZED_SENDER_RAHIL` and `AUTHORIZED_SENDER_KARISHMA`, in E.164 format
 - `ANTHROPIC_API_KEY`, plus `MODEL_BACKEND=anthropic`
-- `GOOGLE_APPLICATION_CREDENTIALS` and `GOOGLE_SHEETS_SPREADSHEET_ID`, plus
-  `SHEETS_BACKEND=google`
+- `GOOGLE_SHEETS_SPREADSHEET_ID`, plus `SHEETS_BACKEND=google`; authentication defaults to
+  Application Default Credentials
 - optional LangSmith prompt IDs for the supervisor, read agent, and write agent
 
-Share the workbook with the email address in the Google service-account credential. Never commit
-that credential file; common service-account filenames are ignored by Git.
+For local development, authenticate without a downloaded service-account key:
+
+```bash
+gcloud auth application-default login \
+  --client-id-file=/path/to/oauth-client.json \
+  --scopes=openid,https://www.googleapis.com/auth/userinfo.email,https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/spreadsheets
+```
+
+Leave `GOOGLE_APPLICATION_CREDENTIALS` blank when using this flow. The Google account used for the
+login must have Editor access to the workbook. An approved service-account JSON path remains
+supported for deployed environments; never commit that credential file.
 
 ## Run locally
 
-Start each service in its own terminal:
+Start the full local stack, including ngrok, with one command:
+
+```bash
+./scripts/run_local.sh
+```
+
+The script waits for all three health checks, prints the complete temporary Twilio webhook URL,
+and keeps the processes running until you press `Ctrl+C`. Update Twilio with the printed URL and
+use `POST`. A new free ngrok URL is normally assigned each time the script starts.
+
+Alternatively, start each service in its own terminal:
 
 ```bash
 poetry run expenses-read-agent

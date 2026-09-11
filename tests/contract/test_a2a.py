@@ -5,13 +5,30 @@ import httpx
 from a2a.client import ClientConfig, ClientFactory
 from a2a.types import Message, Role, SendMessageRequest
 
-from expenses_agent.agents.common.a2a import data_part_to_dict, dict_to_data_part
+from expenses_agent.agents.common.a2a import (
+    GraphAgentExecutor,
+    data_part_to_dict,
+    dict_to_data_part,
+)
 from expenses_agent.agents.write.app import create_app
-from expenses_agent.domain import AgentAction, AgentRequest, AgentResult, InboundSMS
+from expenses_agent.domain import (
+    AgentAction,
+    AgentRequest,
+    AgentResult,
+    InboundSMS,
+    ResultStatus,
+)
+
+
+async def deterministic_runner(request: AgentRequest) -> AgentResult:
+    assert request.action is AgentAction.WRITE
+    return AgentResult(status=ResultStatus.SUCCESS, message="Expense accepted.")
 
 
 async def test_write_agent_card_and_a2a_data_contract() -> None:
-    app = create_app(base_url="http://agent.test")
+    app = create_app(
+        base_url="http://agent.test", executor=GraphAgentExecutor(deterministic_runner)
+    )
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://agent.test") as http_client:
         card_response = await http_client.get("/.well-known/agent-card.json")

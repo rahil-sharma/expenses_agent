@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from typing import Any, Protocol, cast
 
+import google.auth
+from google.auth.credentials import Credentials
 from google.oauth2 import service_account
 from googleapiclient.discovery import build  # type: ignore[import-untyped]
 
@@ -52,10 +54,8 @@ def row_matches(expense: ExpenseRow, query: ExpenseQuery) -> bool:
 class GoogleSheetsGateway:
     """Small async facade over the synchronous Google Sheets v4 client."""
 
-    def __init__(self, credentials_path: str, spreadsheet_id: str) -> None:
-        credentials = service_account.Credentials.from_service_account_file(  # type: ignore[no-untyped-call]
-            credentials_path, scopes=[SHEETS_SCOPE]
-        )
+    def __init__(self, credentials_path: str | None, spreadsheet_id: str) -> None:
+        credentials = load_google_credentials(credentials_path)
         self._service = build("sheets", "v4", credentials=credentials, cache_discovery=False)
         self._spreadsheet_id = spreadsheet_id
 
@@ -90,7 +90,12 @@ class GoogleSheetsGateway:
             response = (
                 self._service.spreadsheets()
                 .values()
-                .get(spreadsheetId=self._spreadsheet_id, range=f"'{worksheet}'!A:G")
+                .get(
+                    spreadsheetId=self._spreadsheet_id,
+                    range=f"'{worksheet}'!A:G",
+                    valueRenderOption="UNFORMATTED_VALUE",
+                    dateTimeRenderOption="SERIAL_NUMBER",
+                )
                 .execute()
             )
             values = response.get("values", [])
@@ -138,6 +143,19 @@ class GoogleSheetsGateway:
         )
 
 
+def load_google_credentials(credentials_path: str | None = None) -> Credentials:
+    """Use an explicit service-account file or fall back to keyless ADC."""
+    if credentials_path:
+        return cast(
+            Credentials,
+            service_account.Credentials.from_service_account_file(  # type: ignore[no-untyped-call]
+                credentials_path, scopes=[SHEETS_SCOPE]
+            ),
+        )
+    credentials, _ = google.auth.default(scopes=[SHEETS_SCOPE])
+    return credentials
+
+
 def _row_number_from_range(updated_range: str) -> int:
     try:
         cell_range = updated_range.rsplit("!", maxsplit=1)[1]
@@ -158,7 +176,7 @@ def _parse_sheet_row(values: Sequence[Any]) -> ExpenseRow | None:
         raise ValueError(f"Invalid cost value {padded[2]!r}") from error
     return ExpenseRow.model_validate(
         {
-            "Date": datetime.strptime(str(padded[0]), "%m/%d/%Y").date(),
+            "Date": _parse_sheet_date(padded[0]),
             "Expense": padded[1],
             "Cost": cost,
             "Paid By": padded[3],
@@ -167,3 +185,13 @@ def _parse_sheet_row(values: Sequence[Any]) -> ExpenseRow | None:
             "Notes": padded[6],
         }
     )
+
+
+def _parse_sheet_date(value: Any) -> date:
+    """Parse either a Google Sheets date serial or an explicit US date string."""
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return date(1899, 12, 30) + timedelta(days=int(value))
+    try:
+        return datetime.strptime(str(value).strip(), "%m/%d/%Y").date()
+    except ValueError as error:
+        raise ValueError(f"Invalid date value {value!r}") from error

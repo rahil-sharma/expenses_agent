@@ -65,13 +65,13 @@ def create_app(
 
         cached = await store.get(message.message_sid)
         if cached is not None:
-            return Response(content=cached, media_type="application/xml")
+            return Response(content=cached, media_type="text/xml")
 
         output = await resolved_graph.ainvoke({"sms": message, "default_payer": payer})
         state = SupervisorState.model_validate(output)
         xml = twiml_message(state.response_text or "I couldn't process that request.")
         await store.put(message.message_sid, xml)
-        return Response(content=xml, media_type="application/xml")
+        return Response(content=xml, media_type="text/xml")
 
     return app
 

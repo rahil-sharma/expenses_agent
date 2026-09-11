@@ -28,4 +28,3 @@ def test_langgraph_config_exports_importable_graphs() -> None:
         module_path, attribute = target.removeprefix("./src/").split(":")
         module = importlib.import_module(module_path.removesuffix(".py").replace("/", "."))
         assert hasattr(module, attribute)
-
